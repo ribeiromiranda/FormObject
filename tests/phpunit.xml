@@ -1,0 +1,24 @@
+<phpunit
+	bootstrap="../Bootstrap.php"
+	colors="true" 
+	backupStaticAttributes="false"
+	backupGlobals="false">
+
+	<testsuites>
+	    <testsuite name="FormObject">
+	        <directory suffix=".php">./</directory>
+	    </testsuite>
+    </testsuites>
+
+    <groups>
+        <exclude>
+            <group>disable</group>
+        </exclude>
+    </groups>
+
+    <filter>
+        <whitelist>
+            <directory suffix=".php">../library/</directory>
+        </whitelist>
+    </filter>
+</phpunit>
