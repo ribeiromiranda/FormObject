@@ -47,7 +47,7 @@ class TipoPessoa {
 	/**
 	 * @Column(name="numero_documento", type="string")
 	 */
-	protected $document;
+	protected $documento;
 
 	/**
 	 * @return the $id
@@ -80,8 +80,8 @@ class TipoPessoa {
 	/**
 	 * @param string $document
 	 */
-	public function setDocument($document) {
-		$this->document = $document;
+	public function setDocumento($documento) {
+		$this->documento = $documento;
 	}
 
 

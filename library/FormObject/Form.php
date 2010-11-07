@@ -27,6 +27,8 @@ namespace FormObject;
 
 use Doctrine\ORM\EntityManager;
 
+require_once 'Zend/Form.php';
+
 abstract class Form extends \Zend_Form {
 
     /**
@@ -37,7 +39,7 @@ abstract class Form extends \Zend_Form {
     /**
      * @param Doctrine\ORM\EntityManager $em
      */
-    public static function setEntityManager (EntityManager $em) {
+    public static function setEntityManager(EntityManager $em) {
         self::$_entityManager = $em;
     }
 
@@ -52,7 +54,12 @@ abstract class Form extends \Zend_Form {
     protected $_classMetadata;
 
     /**
-     * @var FormObject\FactoryObject
+     * @var Doctrine\DBAL\Connection
+     */
+    protected $_connection;
+
+    /**
+     * @var FormObject.FactoryObject
      */
     private $_factoryObject = null;
 
@@ -65,8 +72,11 @@ abstract class Form extends \Zend_Form {
      * @param string $class
      * @throws \InvalidArgumentException
      */
-    public function __construct ($class) {
+    public function __construct($class) {
         parent::__construct();
+        $this->setIsArray(true);
+        $this->setElementsBelongTo($class);
+        
         if (! is_string($class)) {
             throw new \InvalidArgumentException();
         }
@@ -75,50 +85,44 @@ abstract class Form extends \Zend_Form {
             ->getClassMetadata($class);
         $this->_class = trim($class, '\\');
         
-        $this->_initIdentifierProperty();
-        
         $this->_init();
+    
     }
 
-    private function _initIdentifierProperty () {
-        $identifierFieldNames = $this->_classMetadata->getIdentifierFieldNames();
-        foreach ($identifierFieldNames as $fieldName) {
-            $this->addProperty(new \Zend_Form_Element_Hidden($fieldName));
-        }
-    }
+    abstract protected function _init();
 
-    public function setObject ($object) {
+    /**
+     * @param mixed $object
+     */
+    public function setObject($object) {
         if (! is_object($object)) {
-            throw new \InvalidArgumentException('Parametro $object não é um object!');
+            throw new \InvalidArgumentException('Parametro \'$object\' não é um objeto!');
         }
+
+        $this->_initIdentifierProperty();
+
+        $classMetadata = $this->_classMetadata;
+        foreach ($this->getSubForms() as $subForm) {
+            $valueSubForm = $classMetadata->getFieldValue($object, $subForm->getName());
+            $subForm->setObject($valueSubForm);
+        }
+        
         $this->_object = $object;
     }
 
     /**
-     * 
-     */
-    abstract protected function _init ();
-
-    /**
      * @param \Zend_Form_Element $element
      */
-    public function addProperty (\Zend_Form_Element $property) {
+    public function addProperty(\Zend_Form_Element $property) {
         $this->isFieldClassMetaData($property->getName());
         parent::addElement($property);
     }
 
     /**
      * @param string $property
-     */
-    public function getProperty ($property) {
-        return $this->getElement($property);
-    }
-
-    /**
-     * @param string $property
      * @throws \Exception
      */
-    private function isFieldClassMetaData ($property) {
+    private function isFieldClassMetaData($property) {
         if (! array_search($property, $this->_classMetadata->fieldNames)) {
             throw new \Exception("A propriedade {$property} não existe na class {$this->_class}");
         }
@@ -130,19 +134,53 @@ abstract class Form extends \Zend_Form {
      * @see Zend_Form::addSubForm()
      * @throws \Exception
      */
-    public function addSubForm (\Zend_Form $form, $property, $order = null) {
+    public function addSubForm(\Zend_Form $form, $property, $order = null) {
         if (! $form instanceof Form) {
-            throw new \InvalidArgumentException('Parametro $form');
+            throw new \InvalidArgumentException(
+            'Tipo do parametro \'$form\' não é \'\FormObject\Object\'');
         }
+        
         $this->_classMetadata->getAssociationMapping($property);
         parent::addSubForm($form, $property, $order);
     }
 
     /**
+     * @return array
+     */
+    public function getProperties() {
+        $properties = array();
+        foreach ($this->getElements() as $property) {
+            if (! $property instanceof \Zend_Form_Element_Submit) {
+                $properties[] = $property;
+            }
+        }
+        return $properties;
+    }
+
+    /**
+     * @param string $property
+     */
+    public function getProperty($property) {
+        return $this->getElement($property);
+    }
+
+    /**
      * @return mixed
      */
-    public function getObject () {
+    public function getObject() {
+        $this->_initIdentifierProperty();
         return Object\Factory::convertFormToObject($this, $this->_object);
+    }
+
+    /**
+     * @return Doctrine\DBAL\Connection
+     */
+    public function getConnection() {
+        if (is_null($this->_connection)) {
+            $this->_connection = $this->getEntityManager()
+                ->getConnection();
+        }
+        return $this->_connection;
     }
 
     /**
@@ -150,14 +188,80 @@ abstract class Form extends \Zend_Form {
      * @see FormObject.Form::getEntityManager()
      * @return Doctrine\ORM\EntityManager
      */
-    public function getEntityManager () {
+    public function getEntityManager() {
         return self::$_entityManager;
     }
 
     /**
-     * @return Doctrine\ORM\Mapping\ClassMetadata
+     * @return Doctrine.ORM.Mapping.ClassMetadata
      */
-    public function getClassMetadata () {
+    public function getClassMetadata() {
         return $this->_classMetadata;
+    }
+
+    /**
+     * (non-PHPdoc)
+     * @see Zend_Form::render()
+     */
+    public function render(\Zend_View_Interface $view = null) {
+        $this->_initIdentifierProperty();
+        $this->loadValues();
+        return parent::render($view);
+    }
+
+    /**
+     * @return void
+     */
+    private function _initIdentifierProperty() {
+        $identifierFieldNames = $this->_classMetadata->getIdentifierFieldNames();
+        foreach ($identifierFieldNames as $fieldName) {
+            if ($this->getElement($fieldName) === null) {
+                require_once 'Zend/Form/Element/Hidden.php';
+                $this->addProperty(new \Zend_Form_Element_Hidden($fieldName));
+            }
+        }
+    }
+
+    /**
+     * @return void
+     */
+    public function loadValues() {
+        if (is_object($this->_object)) {
+            $this->_loadValulesFieldNames();
+            $this->_loadValuesSubForms();
+        }
+    }
+
+    /**
+     * @return void
+     */
+    private function _loadValulesFieldNames() {
+        $object = $this->_object;
+        $classMetadata = $this->_classMetadata;
+        
+        foreach ($classMetadata->fieldNames as $fieldName) {
+            $value = $classMetadata->getFieldValue($object, $fieldName);
+            $type = $classMetadata->getTypeOfField($fieldName);
+            $value = $this->_convertToViewValue($value, $type);
+            $this->getElement($fieldName)->setValue($value);
+        }
+    }
+
+    /**
+     * @return void
+     */
+    private function _loadValuesSubForms() {
+        foreach ($this->getSubForms() as $subForm) {
+            $subForm->loadValues();
+        }
+    }
+
+    /**
+     * @param mixed $value
+     * @param string $type
+     * @return mixed
+     */
+    private function _convertToViewValue($value, $type) {
+        return Types\Type::getType($type)->convertToViewValue($value);
     }
 }

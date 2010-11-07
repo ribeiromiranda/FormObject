@@ -25,11 +25,26 @@
 
 namespace FormObject\Object;
 
-use FormObject;
+use FormObject\Object;
 
-class Alter implements ConvertFormToObject {
+require_once 'FormObject/Object/ConvertFormToObject.php';
 
-    public function __construct (FormObject\Form $form) {
+class Alter extends ConvertFormToObject {
+
+    protected $_nameMethodFormFactory = 'alterObject';
+
+    private $_object;
+
+    public function __construct($form, $object) {
+        if (! is_object($object)) {
+            throw new \Exception('Parametro \'$object\' não é um objeto');
+        }
+        
+        parent::__construct($form);
+        $this->_object = $object;
     }
 
+    protected function _doGetObject() {
+        return $this->_object;
+    }
 }

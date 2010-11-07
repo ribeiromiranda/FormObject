@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * @package FormObject\Object
+ * @package FormObject
  * @author André Ribeiro de Miranda <ardemiranda@gmail.com>
  * @copyright 2010 André Ribeiro de Miranda
  * 
@@ -23,18 +23,28 @@
  * @link http://belocodigo.com.br
  */
 
-namespace FormObject\Object;
+namespace FormObject\Types;
 
-use FormObject;
+use FormObject\Types\View\FormatDefault;
 
-require_once 'FormObject/Object/ConvertFormToObject.php';
+class TestFormat extends \PHPUnit_Framework_TestCase {
 
-class Create extends ConvertFormToObject {
+    /**
+     * @var FormObject\Types\View\FormtDefault
+     */
+    protected $_format;
 
-    protected $_nameMethodFormFactory = 'createObject';
+    public function setUp() {
+        $this->_format = new FormatDefault();
+    }
 
-    protected function _doGetObject () {
-        \Zend_Loader::loadClass($this->_class);
-        return new $this->_class;
+    public function testFormats() {
+        $this->assertEquals('1', $this->_format->convertBooleans(true));
+        $this->assertInternalType('string', $this->_format->convertBooleans(true));
+        $this->assertEquals('0', $this->_format->convertBooleans(false));
+        $this->assertInternalType('string', $this->_format->convertBooleans(false));
+        $this->assertEquals('d/m/Y H:i', $this->_format->getDateTimeFormatString());
+        $this->assertEquals('d-m-Y H:i:s', $this->_format->getDateTimeTzFormatString());
+        $this->assertEquals('d/m/Y', $this->_format->getDateFormatString());
     }
 }

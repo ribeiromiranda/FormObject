@@ -44,8 +44,8 @@ class FormPessoa extends \FormObject\Form
 		$ativo = new \Zend_Form_Element_Checkbox('ativo');
 		$ativo->setLabel('Ativo');
 		$this->addProperty($ativo);
-
+		
 		$submit = new \Zend_Form_Element_Submit('Salvar');
 		$this->addElement($submit);
-	}	
+	}
 }

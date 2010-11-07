@@ -26,8 +26,8 @@
 namespace Mock;
 
 class FormTipoPessoa extends \FormObject\Form {
-
     protected function _init () {
-    
+        $this->addProperty(new \Zend_Form_Element_Text('nome'));
+        $this->addProperty(new \Zend_Form_Element_Text('documento'));
     }
 }

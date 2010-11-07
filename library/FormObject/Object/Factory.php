@@ -29,47 +29,55 @@ use FormObject;
 
 final class Factory {
 
-    private static $create = array ();
-
-    private static $alter = array ();
-
-    public static function convertFormToObject (FormObject\Form $form, $object) {
-        self::cleanForm($form);
+    public static function convertFormToObject(FormObject\Form $form, $object) {
+        $removedElements = self::cleanForm($form);
         
-        if (is_null($object)) {
-            $factory = self::getCreate($form);
+        $alterar = true;
+        if (! is_object($object)) {
+            $object = self::find($form);
+            if (! is_object($object)) {
+                $alterar = false;
+            }
+        }
+        
+        if ($alterar) {
+            require_once 'FormObject/Object/Alter.php';
+            $factory = new Alter($form, $object);
         } else {
-            $factory = self::getAlter($form);
+            require_once 'FormObject/Object/Create.php';
+            $factory = new Create($form);
         }
-        return $factory->getObject();
+
+        $object = $factory->getObject();
+        $form->addElements($removedElements);
+
+        return $object;
     }
 
-    private static function getCreate (FormObject\Form $form) {
-        $name = $form->getName();
-        if (empty(self::$create[$name])) {
-            self::$create[$name] = new Create($form);
+    private static function find($form) {
+        $classMetadata = $form->getClassMetadata();
+        $identifierFieldNames = $classMetadata->getIdentifierFieldNames();
+        $where = array ();
+        foreach ($identifierFieldNames as $fieldName) {
+            $where[$fieldName] = $form->getElement($fieldName)
+                ->getValue();
         }
-        return self::$create[$name];
+        if (empty($where)) {
+            return null;
+        }
+        return $form->getEntityManager()
+            ->find($classMetadata->name, $where);
     }
 
-    private static function getAlter (FormObject\Form $form) {
-        $name = $form->getName();
-        if (empty(self::$alter[$name])) {
-            self::$alter[$name] = new Alter($form);
-        }
-        return self::$alter[$name];
-    }
-
-    private static function cleanForm (FormObject\Form $form) {
+    private static function cleanForm(FormObject\Form $form) {
+        $removedElements = array();
         foreach ($form->getElements() as $element) {
             if ($element instanceof \Zend_Form_Element_Submit) {
+                $removedElements[] = $element;
                 $form->removeElement($element->getName());
             }
         }
-    }
-
-    private static function normalizeNames () {
-    
+        return $removedElements;
     }
 }
 

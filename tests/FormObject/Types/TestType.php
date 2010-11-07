@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * @package FormObject\Object
+ * @package FormObject
  * @author André Ribeiro de Miranda <ardemiranda@gmail.com>
  * @copyright 2010 André Ribeiro de Miranda
  * 
@@ -23,42 +23,23 @@
  * @link http://belocodigo.com.br
  */
 
-namespace FormObject\Object;
+namespace FormObject\Types;
 
-use Doctrine\DBAL\Types\BooleanType;
+class TestType extends \PHPUnit_Framework_TestCase {
 
-final class DataType {
-
-    public static function create ($type, $value) {
-        if (is_null($value)) {
-            return $value;
-        }
+    public function testFactory() {
+        Type::addType(Mock::NAME_TYPE, 'FormObject\Types\Mock');
+        $mock = Type::getType(Mock::NAME_TYPE);
         
-        $instance = new self();
-        if (! method_exists($instance, $type)) {
-            throw new \Exception("Tipo '{$type}' não existe!");
-        }
-        
-        return self::$type($value);
+        $this->assertEquals(Mock::NAME_TYPE, $mock->getName());
     }
+}
 
-    private static function date ($value) {
-        return self::dateTime($value);
-    }
+class Mock extends Type {
 
-    private static function dateTime ($value) {
-        return new \DateTime($value);
-    }
+    const NAME_TYPE = 'Mock';
 
-    private static function string ($value) {
-        return (string) $value;
-    }
-
-    private static function integer ($value) {
-        return (int) $value;
-    }
-
-    private static function boolean ($value) {
-        return (bool) $value;
+    public function getName() {
+        return self::NAME_TYPE;
     }
 }

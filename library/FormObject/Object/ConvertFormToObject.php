@@ -24,10 +24,66 @@
  */
 
 namespace FormObject\Object;
+use FormObject;
 
-interface ConvertFormToObject {
+abstract class ConvertFormToObject {
 
-    public function getObject ();
+    /**
+     * @var FormObject\Form
+     */
+    protected $_form;
+
+    /**
+     * @var Doctrine\ORM\Mapping\ClassMetadata
+     */
+    protected $_classMetadata;
+
+    /**
+     * @var string
+     */
+    protected $_class;
+
+    /**
+     * @param FormObject\Form $form
+     * @param Doctrine\ORM\EntityManager
+     */
+    public function __construct(FormObject\Form $form) {
+        if (! property_exists($this, '_nameMethodFormFactory')) {
+            throw new \Exception('Propriedade \'nameMethodFormFactory\ não foi definida\'');
+        }
+        
+        $this->_form = $form;
+        $this->_classMetadata = $form->getClassMetadata();
+        $this->_class = $this->_classMetadata->name;
+    }
+
+    public function getObject() {
+        if (method_exists($this->_form, $this->_nameMethodFormFactory)) {
+            return $this->_form->createObject($this->_form->getElements());
+        }
+        
+        $form = $this->_form;
+        $object = $this->_doGetObject();
+        
+        foreach ($form->getElements() as $element) {
+            $fieldName = $element->getName();
+            $typeOfField = $this->_classMetadata->getTypeOfField($fieldName);
+            $value = $element->getValue();
+            $value = \FormObject\Types\Type::getType($typeOfField)->convertToPHPValue($value);
+            
+            $this->_classMetadata->setFieldValue($object, $fieldName, $value);
+        }
+        
+        foreach ($form->getSubForms() as $subForm) {
+            $fieldName = $subForm->getName();
+            $value = $subForm->getObject();
+            $this->_classMetadata->setFieldValue($object, $fieldName, $value);
+        }
+        
+        return $object;
+    }
+
+    abstract protected function _doGetObject();
 }
 
 ?>

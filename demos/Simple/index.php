@@ -35,7 +35,7 @@ $form->setAction('index.php')
 
 
 if ($form->isValid($_POST)) {
-	var_dump($form->getEntity());
+	var_dump($form->getObject());
 }
 
 echo $form->render();

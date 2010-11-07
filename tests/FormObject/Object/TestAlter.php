@@ -22,3 +22,31 @@
  * @license http://www.gnu.org/copyleft/lesser.txt GNU LESSER GENERAL PUBLIC LICENSE
  * @link http://belocodigo.com.br
  */
+
+namespace FormObject\Object;
+
+class TestAlter extends TestConvertFormToObject {
+
+    public function testConstruct() {
+        try {
+            $alter = new Alter($this->_form, 123);
+        } catch (\Exception $e) {
+            return;
+        }
+        
+        $this->fail('Erá esperado um \'Exception\'');
+    }
+
+    public function testAlter() {
+        $expected = clone $this->_pessoa;
+        $expected->setNome('André R.');
+        
+        $dados = $this->_dados;
+        $dados['nome'] = 'André R.';
+        $this->_form->isValid($dados);
+        
+        $alter = new Alter($this->_form, $this->_pessoa);
+        
+        $this->assertEquals($expected, $alter->getObject());
+    }
+}

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * @package FormObject\Object
+ * @package FormObject
  * @author André Ribeiro de Miranda <ardemiranda@gmail.com>
  * @copyright 2010 André Ribeiro de Miranda
  * 
@@ -23,18 +23,31 @@
  * @link http://belocodigo.com.br
  */
 
-namespace FormObject\Object;
+namespace Simple;
 
-use FormObject;
+class FormPessoa extends \FormObject\Form
+{
+	public function __construct() {
+		parent::__construct('Models\Pessoa');
+	}
+	
+	public function _init() {
+		$nome = new \Zend_Form_Element_Text('nome');
+		$nome->setLabel('Nome');
+		$nome->setRequired(true);
+		$this->addProperty($nome);
 
-require_once 'FormObject/Object/ConvertFormToObject.php';
+		$nascimento = new \Zend_Form_Element_Text('dataNascimento');
+		$nascimento->setLabel('Data Nascimento');
+		$this->addProperty($nascimento);
+		
+		$ativo = new \Zend_Form_Element_Checkbox('ativo');
+		$ativo->setLabel('Ativo');
+		$this->addProperty($ativo);
+		
+		
 
-class Create extends ConvertFormToObject {
-
-    protected $_nameMethodFormFactory = 'createObject';
-
-    protected function _doGetObject () {
-        \Zend_Loader::loadClass($this->_class);
-        return new $this->_class;
-    }
+		$submit = new \Zend_Form_Element_Submit('Salvar');
+		$this->addElement($submit);
+	}
 }

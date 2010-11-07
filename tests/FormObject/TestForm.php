@@ -40,17 +40,24 @@ class TestForm extends \PHPUnit_Framework_TestCase
 	public function setUp() {
 		$this->_dados = array (
 			'nome' 		 => 'André Ribeiro de Miranda',
-			'dataNascimento' => '02/07/1989'
+			'dataNascimento' => '02/07/1989',
+			'ativo' => '1'
 		);
-		$this->_form = new FormPessoa('\Models\Pessoa');
-		$this->_form->setAction('/action')
-					->setMethod('post')
-					->setView(\Zend_Registry::get('view'));
+
+		$pessoa = new \Models\Pessoa();
+		$pessoa->setNome($this->_dados['nome']);
+		$data = Types\Type::getType('date')->convertToPHPValue($this->_dados['dataNascimento']);
+		
+		$pessoa->setDataNascimento($data);
+		$pessoa->setAtivo($this->_dados['ativo']);
+		$this->_pessoa = $pessoa;
+		
+		$this->_form = new \Mock\FormPessoa('Models\Pessoa');
 	}
 
 	public function testConstruct_sem_argumento() {
 		try {
-			$form = new FormPessoa();
+			$form = new \Mock\FormPessoa();
 
 		} catch (\Exception $e) {
 			return ;
@@ -61,7 +68,7 @@ class TestForm extends \PHPUnit_Framework_TestCase
 
 	public function testConstruct_argumento_invalido() {
 		try {
-			$form = new FormPessoa(123);
+			$form = new \Mock\FormPessoa(123);
 
 		} catch (\InvalidArgumentException $e) {
 			return ;
@@ -71,7 +78,7 @@ class TestForm extends \PHPUnit_Framework_TestCase
 
 	public function testConstruct_class_inexistente() {
 		try {
-			$form = new FormPessoa('ClassInexistente');
+			$form = new \Mock\FormPessoa('ClassInexistente');
 
 		} catch (\Exception $e) {
 			return ;
@@ -80,7 +87,7 @@ class TestForm extends \PHPUnit_Framework_TestCase
 	}
 
 	public function testConstruct() {
-		$form = new FormPessoa('\Models\Pessoa');
+		$form = new \Mock\FormPessoa('\Models\Pessoa');
 		$classMetaData = $this->_form->getEntityManager()
 			->getClassMetadata('\Models\Pessoa');
 		
@@ -88,6 +95,11 @@ class TestForm extends \PHPUnit_Framework_TestCase
 		$this->assertAttributeEquals('Models\Pessoa', '_class', $form);
 		
 		$identifierFieldNames = $this->_form->getClassMetadata()->getIdentifierFieldNames();
+
+		ob_start();
+		$this->_form->render();
+		ob_clean();
+
 		foreach ($identifierFieldNames as $fieldName) {
 			$this->assertEquals($fieldName, $this->_form->getProperty($fieldName)->getName());
 		}
@@ -108,34 +120,6 @@ class TestForm extends \PHPUnit_Framework_TestCase
 			return ;
 		}
 
-		$this->fail('Erá esperado uma \'Exception\'');
-	}
-
-	public function testAddSubform_adicionar_Form_valido() {
-		$form = new \Mock\FormTipoPessoa('Models\TipoPessoa');
-		$this->_form->addSubForm($form, 'tipoPessoa');
-		$this->assertEquals('tipoPessoa', $this->_form->getSubForm('tipoPessoa')->getName());
-	}
-
-	public function testAddSubform_adicionar_form_invalido() {
-		$form = new \Mock\FormMonitor('\Models\Monitor');
-		try {
-			$this->_form->addSubForm($form, 'monitor');
-		} catch (\Exception $e) {
-			return ;
-		}
-
-		$this->fail('Erá esperado uma \'Exception\'');
-	}
-
-	public function testAddSubForm_adicionar_zend_form() {
-		$form = new \Zend_Form();
-		try {
-			$this->_form->addSubForm($form);
-		} catch (\Exception $e) {
-			return ;
-		}
-		
 		$this->fail('Erá esperado uma \'Exception\'');
 	}
 
@@ -161,11 +145,21 @@ class TestForm extends \PHPUnit_Framework_TestCase
 		$this->_form->setObject($pessoa);
 		$this->assertAttributeEquals($pessoa, '_object', $this->_form);
 	}
-}
-
-
-class FormPessoa extends \FormObject\Form {
 	
-	protected function _init() {
+	public function testLoadValuesObject() {
+	    $dados = $this->_dados;
+	    $form = $this->_form;
+
+	    $em = \Zend_Registry::get('em');
+	    $em->persist($this->_pessoa);
+        $em->flush();
+        
+	    $dados['id'] = $this->_pessoa->getId();
+
+	    $form->setObject($this->_pessoa);
+	    $form->render();
+	    foreach ($form->getProperties() as $element) {
+	        $this->assertEquals($dados[$element->getName()], $element->getValue()); 
+	    }
 	}
 }

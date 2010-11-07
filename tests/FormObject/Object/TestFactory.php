@@ -25,6 +25,8 @@
 
 namespace FormObject\Object;
 
+use \FormObject\Types\Type;
+
 class TestFactory extends \PHPUnit_Framework_TestCase {
 
     /**
@@ -33,24 +35,54 @@ class TestFactory extends \PHPUnit_Framework_TestCase {
     private $_dados;
 
     /**
+     * @var \Models\Pessoa
+     */
+    private $_pessoa;
+
+    /**
      * @var FormObject\Form
      */
     private $_form;
 
-    public function setUp () {
-        $this->_dados = array (
-            
-        'nome' => 'André Ribeiro de Miranda', 'dataNascimento' => '02/07/1990', 'ativo' => true
-        );
+    /**
+     * (non-PHPdoc)
+     * @see PHPUnit_Framework_TestCase::setUp()
+     */
+    protected function setUp() {
+        $this->_dados = \Models\FactoryModels::getDados();
+        $this->_pessoa = \Models\FactoryModels::createPessoa();
+        
         $this->_form = new \Mock\FormPessoa('Models\Pessoa');
+        $this->_form->render();
+        $this->_form->isValid($this->_dados);
     }
 
-    public function testConvertFormToObject_new () {
-        $expected = new \Models\Pessoa();
+    public function testConvertFormToObject_new() {
         $actual = Factory::convertFormToObject($this->_form, null);
-        $this->assertEquals($expected, $actual);
+        $this->assertTrue($this->_pessoa == $actual);
     }
 
-    public function testConvertFormToObject_alter () {
+    public function testConvertFormToObject_alter() { 
+        $em = \Zend_Registry::get('em');
+
+        $pessoa = \Models\FactoryModels::createPessoa();
+        $data = Type::getType('date')->convertToPHPValue('02/07/1990');
+        $pessoa->setDataNascimento($data);
+        $em->persist($pessoa);
+        $em->flush();
+        
+        $dados = $this->_dados;
+        $dados['id'] = $pessoa->getId();
+        
+        if (! $this->_form->isValid($dados)) {
+            $this->fail('Falha Form->isValid(????)!');
+        }
+        
+        $pessoaExpected = \Models\FactoryModels::createPessoa();
+        $pessoaActual = $this->_form->getObject();
+
+        $this->assertTrue($pessoaExpected == $pessoaActual);
+        
+        $em->flush();
     }
 }

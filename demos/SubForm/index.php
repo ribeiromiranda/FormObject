@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * @package FormObject\Object
+ * @package FormObject
  * @author André Ribeiro de Miranda <ardemiranda@gmail.com>
  * @copyright 2010 André Ribeiro de Miranda
  * 
@@ -23,18 +23,19 @@
  * @link http://belocodigo.com.br
  */
 
-namespace FormObject\Object;
+namespace SubForm;
 
-use FormObject;
+require '../../Bootstrap.php';
 
-require_once 'FormObject/Object/ConvertFormToObject.php';
+$form = new FormPessoaSubForm();
+$form->setAction('index.php')
+		->setMethod('post')
+		->setView(\Zend_Registry::get('view'));
 
-class Create extends ConvertFormToObject {
 
-    protected $_nameMethodFormFactory = 'createObject';
 
-    protected function _doGetObject () {
-        \Zend_Loader::loadClass($this->_class);
-        return new $this->_class;
-    }
+if ($form->isValid($_POST)) {
+	var_dump($form->getObject());
 }
+
+echo $form->render();

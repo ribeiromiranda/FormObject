@@ -74,7 +74,6 @@ foreach ($driverImpl->getAllClassNames() as $class) {
 $tool->dropSchema($classes);
 $tool->createSchema($classes);
 
-
 \FormObject\Form::setEntityManager($em);
 \Zend_Registry::set('view', new Zend_View());
 \Zend_Registry::set('em', $em);
