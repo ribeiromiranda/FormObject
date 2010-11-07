@@ -34,7 +34,7 @@ $form->setAction('index.php')
 
 
 
-if ($form->isValid($_POST)) {
+if (!empty($_POST) && $form->isValid($_POST)) {
 	var_dump($form->getObject());
 }
 
