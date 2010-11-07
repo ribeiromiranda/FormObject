@@ -25,6 +25,8 @@
 
 namespace SubFormAlter;
 
+header('Content-Type: text/html;  charset=UTF-8', true);
+
 require '../../Bootstrap.php';
 
 $form = new FormPessoaSubForm();
@@ -35,8 +37,11 @@ $form->setAction('index.php')
 
 $form->setObject(\Models\FactoryModels::createPessoa_TipoPessoa());
 
-if ($form->isValid($_POST)) {
+
+
+if (!empty($_POST) && $form->isValid($_POST)) {
 	var_dump($form->getObject());
 }
 
 echo $form->render();
+
