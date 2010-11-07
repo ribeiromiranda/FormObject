@@ -59,7 +59,7 @@ abstract class ConvertFormToObject {
 
     public function getObject() {
         if (method_exists($this->_form, $this->_nameMethodFormFactory)) {
-            return $this->_form->createObject($this->_form->getElements());
+            return $this->_form->createObject($this->_form);
         }
         
         $form = $this->_form;
