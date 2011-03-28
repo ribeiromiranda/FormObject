@@ -24,12 +24,12 @@
  */
 
 namespace FormObject\Object;
-
-use FormObject;
+use Doctrine\Common\Collections\ArrayCollection;
+use FormObject\Form;
 
 final class Factory {
 
-    public static function convertFormToObject(FormObject\Form $form, $object) {
+    public static function convertFormToObject(Form $form, $object) {
         $removedElements = self::cleanForm($form);
         
         $alterar = true;
@@ -47,11 +47,29 @@ final class Factory {
             require_once 'FormObject/Object/Create.php';
             $factory = new Create($form);
         }
-
+        
         $object = $factory->getObject();
         $form->addElements($removedElements);
-
+        $form->setObject($object);
+        
+        if (! $alterar && !($object instanceof ArrayCollection)) {
+            $form->getEntityManager()->persist($object);
+        }
+        
         return $object;
+    }
+
+    public static function convertElementToObject(Form $form,\Zend_Form_Element $element, $class = null) {
+        $convertElement = new ConvertElement($form);
+        
+        if (is_null($class) && $convertElement->isConvertable($element)) {
+            return $convertElement->convertToPHP($element);
+        
+        } else if (! is_null($class)) {
+            return $convertElement->findObject($class, $element);
+        }
+        
+        return $element->getValue();
     }
 
     private static function find($form) {
@@ -59,17 +77,24 @@ final class Factory {
         $identifierFieldNames = $classMetadata->getIdentifierFieldNames();
         $where = array ();
         foreach ($identifierFieldNames as $fieldName) {
-            $where[$fieldName] = $form->getElement($fieldName)
-                ->getValue();
+        	$element = $form->getElement($fieldName);
+        	if ($element instanceof \Zend_Form_Element) {
+            	$where[$fieldName] =  $element->getValue();
+        	}
         }
         if (empty($where)) {
             return null;
         }
+
         return $form->getEntityManager()
             ->find($classMetadata->name, $where);
     }
+    
+    private static function findElement() {
+        
+    }
 
-    private static function cleanForm(FormObject\Form $form) {
+    private static function cleanForm(Form $form) {
         $removedElements = array();
         foreach ($form->getElements() as $element) {
             if ($element instanceof \Zend_Form_Element_Submit) {

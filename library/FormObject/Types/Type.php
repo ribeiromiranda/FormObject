@@ -82,6 +82,11 @@ abstract class Type {
 
     abstract public function getName();
 
+    /**
+     * @param string $name
+     * @throws \Exception
+     * @return FormObject\Types\Type 
+     */
     public static function getType($name) {
         if (! isset(self::$_typeObjects[$name])) {
             if (! isset(self::$_typesMap[$name])) {
